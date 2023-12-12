@@ -27,15 +27,18 @@ export const people = mysqlTable(
   "person",
   {
     id: bigint("id", { mode: "number" }).primaryKey().autoincrement(),
-    slug: varchar("slug", { length: 256 }).unique(),
-    name: varchar("name", { length: 256 }),
+    slug: varchar("slug", { length: 256 }).unique().notNull(),
+    name: varchar("name", { length: 256 }).notNull(),
     createdAt: timestamp("created_at")
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
     updatedAt: timestamp("updatedAt").onUpdateNow(),
     birthday: date("birthday"),
-    yearMet: year("year_met"),
-    checkInCadence: tinyint("check_in_cadence").notNull(),
+    yearMet: year("year_met").notNull(),
+    checkInCadenceNumber: tinyint("check_in_cadence_number").notNull(),
+    checkInCadenceUnit: varchar("check_in_cadence_unit", {
+      length: 32,
+    }).notNull(),
     phoneNumber: varchar("phone_number", { length: 32 }),
     email: varchar("email", { length: 256 }),
     nextCheckInDate: date("next_check_in_date").notNull(),
@@ -60,9 +63,8 @@ export const checkIns = mysqlTable(
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
     updatedAt: timestamp("updatedAt").onUpdateNow(),
-    checkInDate: date("check_in_date"),
-    checkInRating: tinyint("check_in_rating"),
-    checkInNotes: varchar("check_in_notes", { length: 256 }),
+    date: date("check_in_date").notNull(),
+    notes: varchar("check_in_notes", { length: 1024 }),
   },
   (example) => ({
     personIdIndex: index("person_id_idx").on(example.personId),

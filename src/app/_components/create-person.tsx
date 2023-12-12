@@ -1,13 +1,187 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import FormInputText from "./form-inputs/text";
+import RadioSmallCards, {
+  type OptionType,
+} from "./form-inputs/radio-small-cards";
+import { type PersonCreateInput, type Nullable } from "~/utils/types";
+import { AssertedCheckInCadenceUnitValues } from "~/utils/enums";
 
+import { useRouter } from "next/navigation";
+
+import { z } from "zod";
 import { api } from "~/trpc/react";
+import Form, { FormBody, FormButton, FormInputContainer } from "./form/form";
+import useFormState from "~/utils/hooks/useFormState";
+
+export function CreatePerson() {
+  const router = useRouter();
+  const [person, setPersonProperty, setPerson] =
+    useFormState<PersonState>(DEFAULT_PERSON);
+
+  const createPersonMutation = api.person.create.useMutation({
+    onSuccess: () => {
+      router.refresh();
+      setPerson(DEFAULT_PERSON);
+    },
+  });
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const validatedPerson = validateInput();
+    if (!validatedPerson) return;
+
+    createPersonMutation.mutate(validatedPerson);
+  }
+
+  // TODO: handle validation errors
+  function validateInput(): Nullable<PersonCreateInput> {
+    if (
+      !person.name ||
+      !person.slug ||
+      !person.checkInCadence ||
+      !person.yearMet
+    ) {
+      return null;
+    }
+
+    const [rawNumber, rawUnit] = person.checkInCadence.split(" ");
+    const parseResult = z
+      .tuple([z.number(), z.enum(AssertedCheckInCadenceUnitValues)])
+      .safeParse([Number(rawNumber), rawUnit]);
+
+    if (!parseResult.success) {
+      return null;
+    }
+
+    const [checkInCadenceNumber, checkInCadenceUnit] = parseResult.data;
+
+    return {
+      ...person,
+      name: person.name,
+      slug: person.slug,
+      checkInCadenceNumber: checkInCadenceNumber,
+      checkInCadenceUnit: checkInCadenceUnit,
+      birthday: person.birthday ? new Date(person.birthday) : null,
+    };
+  }
+
+  return (
+    <Form handleSubmit={handleSubmit}>
+      <FormBody>
+        <FormInputContainer width="4col">
+          <FormInputText
+            name="name"
+            value={person.name ?? ""}
+            id="name"
+            placeholder="Lionel Messi"
+            label="Name"
+            required
+            onChange={(event) =>
+              setPersonProperty("name", event.target.value || null)
+            }
+          />
+        </FormInputContainer>
+
+        <FormInputContainer width="4col">
+          <FormInputText
+            name="slug"
+            value={person.slug ?? ""}
+            id="slug"
+            placeholder="lionel-messi"
+            label="Slug"
+            leadingText={{ text: "people/", variant: "inline-block" }}
+            required
+            onChange={(event) =>
+              setPersonProperty(
+                "slug",
+                event.target.value
+                  .replaceAll(/[^A-Za-z0-9]+/g, "-") // replace non-alphanumeric characters with dashes
+                  .toLowerCase() || null,
+              )
+            }
+          />
+        </FormInputContainer>
+
+        <FormInputContainer width="full">
+          <RadioSmallCards
+            name="checkInCadence"
+            value={person.checkInCadence ?? ""}
+            id={"checkInCadence"}
+            label="Check In Cadence"
+            options={CADENCE_OPTIONS}
+            size="large"
+            onChange={(value) => {
+              setPersonProperty("checkInCadence", value);
+            }}
+          />
+        </FormInputContainer>
+
+        <FormInputContainer width="4col">
+          <FormInputText
+            name="throwoff_phoneNumber"
+            value={person.phoneNumber ?? ""}
+            id="phoneNumber"
+            placeholder="(555) 623-4567"
+            label="Phone Number"
+            onChange={(event) =>
+              setPersonProperty("phoneNumber", event.target.value || null)
+            }
+          />
+        </FormInputContainer>
+
+        <FormInputContainer width="4col">
+          <FormInputText
+            name="throwoff_email"
+            value={person.email ?? ""}
+            type="email"
+            id="email"
+            placeholder="lionel@messi.com"
+            label="Email Address"
+            onChange={(event) =>
+              setPersonProperty("email", event.target.value || null)
+            }
+          />
+        </FormInputContainer>
+
+        <FormInputContainer width="4col">
+          <FormInputText
+            name="throwoff_birthday"
+            type="date"
+            value={person.birthday ?? ""}
+            id="birthday"
+            placeholder="08/18/1994"
+            label="Birthday"
+            onChange={(event) =>
+              setPersonProperty("birthday", event.target.value || null)
+            }
+          />
+        </FormInputContainer>
+
+        <FormInputContainer width="full">
+          <RadioSmallCards<number>
+            name="yearMet"
+            value={String(person.yearMet)}
+            id={"yearMet"}
+            label="Year Met"
+            options={YEAR_MET_OPTIONS}
+            size="small"
+            onChange={(value) => {
+              setPersonProperty("yearMet", Number(value));
+            }}
+          />
+        </FormInputContainer>
+      </FormBody>
+      <FormButton isLoading={createPersonMutation.isLoading} />
+    </Form>
+  );
+}
 
 const DEFAULT_PERSON: PersonState = {
   name: null,
-  checkInCadence: 1,
+  slug: null,
+  checkInCadence: null,
   phoneNumber: null,
   email: null,
   yearMet: new Date().getFullYear(),
@@ -16,18 +190,19 @@ const DEFAULT_PERSON: PersonState = {
 
 type PersonState = {
   name: Nullable<string>;
-  checkInCadence: number;
+  slug: Nullable<string>;
+  checkInCadence: Nullable<string>;
   phoneNumber: Nullable<string>;
   email: Nullable<string>;
   yearMet: number;
   birthday: Nullable<string>;
 };
 
-const CADENCE_OPTIONS: OptionType<number>[] = [
-  { label: "2 Weeks", value: 1 },
-  { label: "Monthly", value: 2 },
-  { label: "Quarterly", value: 3 },
-  { label: "Yearly", value: 4 },
+const CADENCE_OPTIONS = [
+  { label: "2 Weeks", value: "2 week" },
+  { label: "Monthly", value: "1 month" },
+  { label: "Quarterly", value: "3 month" },
+  { label: "Yearly", value: "1 year" },
 ];
 
 const YEAR_MET_OPTIONS: OptionType<number>[] = [
@@ -46,166 +221,3 @@ const YEAR_MET_OPTIONS: OptionType<number>[] = [
   { label: "Van Zant ", value: 2003 },
   { label: "Always ", value: 1994 },
 ];
-
-type Person = typeof DEFAULT_PERSON;
-
-export function CreatePerson() {
-  const router = useRouter();
-  const [person, setPerson] = useState(DEFAULT_PERSON);
-
-  const createPerson = api.person.create.useMutation({
-    onSuccess: () => {
-      router.refresh();
-      setPerson(DEFAULT_PERSON);
-    },
-  });
-
-  function handleFormInputChange<K extends keyof Person>(
-    key: K,
-    value: Person[K],
-  ) {
-    setPerson({ ...person, [key]: value });
-  }
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!person.name) {
-      return;
-    }
-
-    addPerson({
-      ...person,
-      name: person.name,
-      birthday: person.birthday ? new Date(person.birthday) : null,
-    });
-  }
-
-  function addPerson(input: NonNullable<typeof createPerson.variables>) {
-    createPerson.mutate({
-      ...input,
-      yearMet: input.yearMet,
-    });
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-      <div className="space-y-12">
-        <div className="border-b border-gray-900/10 pb-12">
-          <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-            <div className="sm:col-span-4">
-              <FormInputText
-                name="throwoff_name"
-                value={person.name ?? ""}
-                id="name"
-                placeholder="Lionel Messi"
-                label="Name"
-                required
-                onChange={(event) =>
-                  handleFormInputChange("name", event.target.value || null)
-                }
-              />
-            </div>
-
-            <div className="col-span-full">
-              <RadioSmallCards<number>
-                name="checkInCadence"
-                value={String(person.checkInCadence)}
-                id={"checkInCadence"}
-                label="Check In Cadence"
-                options={CADENCE_OPTIONS}
-                size="large"
-                onChange={(value) => {
-                  handleFormInputChange("checkInCadence", Number(value));
-                }}
-              />
-            </div>
-
-            <div className="sm:col-span-4">
-              <FormInputText
-                name="throwoff_phoneNumber"
-                value={person.phoneNumber ?? ""}
-                id="phoneNumber"
-                placeholder="(555) 623-4567"
-                label="Phone Number"
-                onChange={(event) =>
-                  handleFormInputChange(
-                    "phoneNumber",
-                    event.target.value || null,
-                  )
-                }
-              />
-            </div>
-
-            <div className="sm:col-span-4">
-              <FormInputText
-                name="throwoff_email"
-                value={person.email ?? ""}
-                type="email"
-                id="email"
-                placeholder="lionel@messi.com"
-                label="Email Address"
-                onChange={(event) =>
-                  handleFormInputChange("email", event.target.value || null)
-                }
-              />
-            </div>
-
-            <div className="sm:col-span-4">
-              <FormInputText
-                name="throwoff_birthday"
-                type="date"
-                value={person.birthday ?? ""}
-                id="birthday"
-                placeholder="08/18/1994"
-                label="Birthday"
-                onChange={(event) =>
-                  handleFormInputChange("birthday", event.target.value || null)
-                }
-              />
-            </div>
-
-            <div className="col-span-full">
-              <RadioSmallCards<number>
-                name="yearMet"
-                value={String(person.yearMet)}
-                id={"yearMet"}
-                label="Year Met"
-                options={YEAR_MET_OPTIONS}
-                size="small"
-                onChange={(value) => {
-                  handleFormInputChange("yearMet", Number(value));
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 flex items-center justify-end gap-x-6">
-        <button
-          type="button"
-          className="text-sm font-semibold leading-6 text-gray-900"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-        >
-          {createPerson.isLoading ? "Submitting..." : "Save"}
-        </button>
-      </div>
-    </form>
-  );
-}
-
-import { PhotoIcon, UserCircleIcon } from "@heroicons/react/24/solid";
-import FormInputText from "./form-inputs/text";
-import RadioSmallCards, { OptionType } from "./form-inputs/radio-small-cards";
-import { date } from "drizzle-orm/mysql-core";
-import { Nullable } from "~/utils/types";
-
-export default function Example() {
-  return <form></form>;
-}

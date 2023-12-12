@@ -3,7 +3,10 @@ import React from "react";
 import { RadioGroup } from "@headlessui/react";
 import clsx from "clsx";
 
-export type OptionType<T extends string | number> = { value: T; label: string };
+export type OptionType<T extends string | number = string> = {
+  value: T;
+  label: string;
+};
 
 type Props<TValue extends string | number = string> = {
   name: string;

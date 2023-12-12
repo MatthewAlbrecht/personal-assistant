@@ -3,35 +3,44 @@ import { z } from "zod";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { people } from "~/server/db/schema";
+import { AssertedCheckInCadenceUnitValues } from "~/utils/enums";
 
 export const personRouter = createTRPCRouter({
-  hello: publicProcedure
-    .input(z.object({ text: z.string() }))
-    .query(({ input }) => {
-      return {
-        greeting: `Hello ${input.text}`,
-      };
-    }),
   create: publicProcedure
     .input(
       z.object({
         name: z.string().min(1),
-        checkInCadence: z.number().min(1).max(4),
+        slug: z
+          .string()
+          .regex(/^[a-z0-9-]+$/)
+          .min(1)
+          .toLowerCase(),
+        checkInCadenceNumber: z.number(),
+        checkInCadenceUnit: z.enum(AssertedCheckInCadenceUnitValues),
         phoneNumber: z.string().length(10).nullable(),
         email: z.string().email().nullable(),
         birthday: z.date().nullable(),
-        yearMet: z.number().min(1900).max(new Date().getFullYear()).nullable(),
+        yearMet: z.number().min(1900).max(new Date().getFullYear()),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       await ctx.db.insert(people).values({
         name: input.name,
-        checkInCadence: input.checkInCadence,
+        slug: input.slug,
+        checkInCadenceNumber: input.checkInCadenceNumber,
+        checkInCadenceUnit: input.checkInCadenceUnit,
         phoneNumber: input.phoneNumber,
         email: input.email,
         birthday: input.birthday,
         yearMet: input.yearMet,
         nextCheckInDate: new Date(),
+      });
+    }),
+  getPerson: publicProcedure
+    .input(z.object({ slug: z.string() }))
+    .query(({ ctx, input }) => {
+      return ctx.db.query.people.findFirst({
+        where: eq(people.slug, input.slug),
       });
     }),
   getNextNDays: publicProcedure

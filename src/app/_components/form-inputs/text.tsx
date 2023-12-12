@@ -1,3 +1,4 @@
+import clsx from "clsx";
 import React from "react";
 
 type Props = {
@@ -18,6 +19,7 @@ type Props = {
     | "number"
     | "date";
   required?: boolean;
+  leadingText?: { text: string; variant: "inline-block" | "inline" };
 };
 
 export default function FormInputText({
@@ -30,7 +32,11 @@ export default function FormInputText({
   onChange,
   autoComplete = "no",
   required = false,
+  leadingText,
 }: Props) {
+  const inputStyles = getInputStyles(leadingText);
+  const leadingTextStyles = getLeadingTextStyles(leadingText);
+
   return (
     <>
       <label
@@ -41,6 +47,9 @@ export default function FormInputText({
       </label>
       <div className="mt-2">
         <div className="flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">
+          {leadingText && (
+            <span className={leadingTextStyles}>{leadingText.text}</span>
+          )}
           <input
             type={type}
             name={name}
@@ -48,7 +57,7 @@ export default function FormInputText({
             autoComplete={autoComplete}
             value={value}
             onChange={onChange}
-            className="block flex-1 border-0 bg-transparent py-1.5 pl-3 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
+            className={inputStyles}
             placeholder={placeholder}
             required={required}
           />
@@ -56,6 +65,28 @@ export default function FormInputText({
       </div>
     </>
   );
+}
+
+function getInputStyles(leadingText: Props["leadingText"]) {
+  return clsx(
+    "block flex-1 border-0 py-1.5 text-gray-900 placeholder:text-gray-400 sm:text-sm sm:leading-6",
+    leadingText != null
+      ? leadingText.variant === "inline-block"
+        ? "w-full min-w-0 rounded-none rounded-r-md ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
+        : "bg-transparent pl-1  focus:ring-0"
+      : "bg-transparent focus:ring-0",
+  );
+}
+
+function getLeadingTextStyles(leadingText: Props["leadingText"]) {
+  return leadingText
+    ? clsx(
+        "items-center text-gray-500 sm:text-sm",
+        leadingText.variant === "inline-block"
+          ? "inline-flex  rounded-l-md border border-r-0 border-gray-300 px-3"
+          : "flex select-none pl-3",
+      )
+    : "";
 }
 
 /* TODO @matthewalbrecht: ADD ERROR STATES */
