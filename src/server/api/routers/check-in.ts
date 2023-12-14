@@ -42,6 +42,7 @@ export const checkInRouter = createTRPCRouter({
         await tx
           .update(people)
           .set({
+            lastCheckInDate: input.date,
             nextCheckInDate: addNUnitsToDate(
               person.checkInCadenceNumber,
               parseResult.data,

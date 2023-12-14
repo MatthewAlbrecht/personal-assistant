@@ -43,6 +43,13 @@ export const personRouter = createTRPCRouter({
         where: eq(people.slug, input.slug),
       });
     }),
+  getAllPeople: publicProcedure
+    .input(z.object({ slug: z.string() }))
+    .query(({ ctx }) => {
+      return ctx.db.query.people.findMany({
+        orderBy: (people, { desc }) => [desc(people.name)],
+      });
+    }),
   getNextNDays: publicProcedure
     .input(z.object({ days: z.number() }))
     .query(({ ctx, input }) => {

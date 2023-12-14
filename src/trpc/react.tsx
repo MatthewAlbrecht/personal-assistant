@@ -9,6 +9,10 @@ import { type AppRouter } from "~/server/api/root";
 import { getUrl, transformer } from "./shared";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
+
 export const api = createTRPCReact<AppRouter>();
 
 export function TRPCReactProvider(props: {

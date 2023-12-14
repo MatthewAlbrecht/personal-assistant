@@ -13,6 +13,7 @@ import Button from "./_components/buttons/button";
 import { api } from "~/trpc/react";
 import { useRouter } from "next/navigation";
 import ButtonLink from "./_components/buttons/button-link";
+import dayjs from "dayjs";
 
 type Props = {
   people: PersonGetNextNDaysOutput;
@@ -81,6 +82,8 @@ function PeopleListItem({
     days: number,
   ) => void;
 }) {
+  const timeToToday = dayjs(person.nextCheckInDate).from(dayjs());
+
   return (
     <li className="flex items-center justify-between gap-x-6 px-4 py-5 hover:bg-gray-50 sm:px-6">
       <div className="min-w-0">
@@ -98,12 +101,7 @@ function PeopleListItem({
           </p>
         </div>
         <div className="mt-1 flex items-center gap-x-2 text-xs leading-5 text-gray-500">
-          <p className="whitespace-nowrap">
-            Due on{" "}
-            <time dateTime={new Date().toISOString()}>
-              {new Date().toISOString()}
-            </time>
-          </p>
+          <p className="whitespace-nowrap">Last check-in {timeToToday}</p>
           <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
             <circle cx={1} cy={1} r={1} />
           </svg>

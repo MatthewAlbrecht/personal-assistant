@@ -42,6 +42,9 @@ export const people = mysqlTable(
     phoneNumber: varchar("phone_number", { length: 32 }),
     email: varchar("email", { length: 256 }),
     nextCheckInDate: date("next_check_in_date").notNull(),
+    // NOTE: I think in a perfect world this is derived from the check-ins table
+    // but for now this seems like less work and obviously would be more performant
+    lastCheckInDate: date("last_check_in_at"),
   },
   (example) => ({
     nameIndex: index("name_idx").on(example.name),
